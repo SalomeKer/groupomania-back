@@ -5,15 +5,16 @@ const app = express()
 const bodyParser = require ("body-parser")
 const { logUser, signupUser } = require ("./controllers/users")
 const cors = require("cors")
-const { getPosts } = require("./controllers/posts")
-const { checkToken } = require("./middleware/token")
+const { postRouter } = require("./routes/posts")
 
 app.use(bodyParser.json())
 app.use(cors())
 
+app.use("/posts", postRouter)
 app.post("/auth/login", logUser)
 app.post("/auth/signup", signupUser)
-app.get("/posts", checkToken, getPosts)
+
+
 
 
 app.listen (port,() => console.log(`Listening on port ${port}`))

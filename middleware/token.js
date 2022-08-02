@@ -1,7 +1,8 @@
 const jwt = require("jsonwebtoken")
+require('dotenv').config();
 
 function checkToken(req,res,next){
-    const token = req.headers.authorization.split(" ")[1]
+    const token = req.headers.authorization.split(" ")[1];
     if (token == null) return res.status(401).send({ error: "Token non présent" })
   
     jwt.verify(token, process.env.SECRET, (error, decoded) => {
@@ -14,3 +15,6 @@ function checkToken(req,res,next){
   
 
 module.exports = { checkToken }
+
+
+
