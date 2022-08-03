@@ -7,13 +7,16 @@ const { logUser, signupUser } = require ("./controllers/users")
 const cors = require("cors")
 const { postRouter } = require("./routes/posts")
 
-app.use(bodyParser.json())
+app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
 app.use(cors())
 
 app.use("/posts", postRouter)
+app.use("/uploads", express.static("uploads"))
+
+
 app.post("/auth/login", logUser)
 app.post("/auth/signup", signupUser)
-
 
 
 
