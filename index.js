@@ -11,6 +11,10 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(cors())
 
+const { PrismaClient } = require("@prisma/client")
+const prisma = new PrismaClient()
+const allUsers = prisma.user.findMany().then(console.log).catch(console.error)
+
 app.use("/posts", postRouter)
 app.use("/uploads", express.static("uploads"))
 
