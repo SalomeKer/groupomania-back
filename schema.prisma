@@ -12,5 +12,22 @@ datasource db {
 model User {
   id    Int     @id @default(autoincrement())
   email String  @unique
-  name  String?
+  password String
+  posts Post[]
+}
+
+model Post {
+    id Int @id @default(autoincrement())
+    content String
+    imageUrl String?
+    userId Int 
+    user User @relation(fields: [userId], references: [id])
+    comments Comment[]
+}
+
+model Comment {
+    id Int @id @default(autoincrement())
+    content String
+    postId Int 
+    post Post @relation(fields: [postId], references: [id])
 }

@@ -1,3 +1,6 @@
+const { prisma } = require ("../db/db")
+
+
 
 const comment1 = {
     id: "1comment",
@@ -41,26 +44,34 @@ function getPosts(req, res){
     res.send({ posts, email})   
 }
 
-function createPosts(req, res){
-    console.log("req.body:", req.body)
-    console.log("req.file:", req.file)
+async function createPosts(req, res){
     const content = req.body.content
-    const hasImage = req.file != null
-    
-    //ON fabrique l'url ou on renvoi null
-    const url = hasImage ? createImageUrl(req) : null
     const email = req.email
-    const post = { content, user: email, comments: [], imageUrl: url, id: posts.length + 1 }
-    //Permet de classer les posts chronologiquement 
-    posts.unshift(post)
-    res.send({ post })
+
+    try {
+    
+    const user = await prisma.user.findUnique({ where: { email } })
+    const userId = user.id
+    const post = { content, userId}
+    addImageUrlToPost(req, post)
+    
+    const result = await prisma.post.create({ data: post})
+    console.log("result:", result)
+    res.send({ post: result })
+ } catch (err){
+    res.status(500).send({ error: "Une erreur s'est produite"})
+ }
 }
 
-function createImageUrl(req){
+function addImageUrlToPost(req, post){    
+    const hasImage = req.file != null
+    if (!hasImage) return
     let pathToImage = req.file.path.replace("\\", "/")
     const protocol = req.protocol
     const host = req.get("host")
-    return `${protocol}://${host}/${pathToImage}`
+    const url = `${protocol}://${host}/${pathToImage}`    
+    post.imageUrl = url
+
 }
 
 function createComment(req, res){

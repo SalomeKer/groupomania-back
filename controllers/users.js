@@ -1,59 +1,75 @@
-const JWT = require ("jsonwebtoken")
-const { users } = require ("../db/db.js")
-const bcrypt = require ("bcrypt")
+const JWT = require("jsonwebtoken")
+const { prisma } = require("../db/db.js")
+const bcrypt = require("bcrypt")
+async function logUser(req, res) {
+	const {
+		email,
+		password
+	} = req.body
+	try {
+		const user = await getUser(email)
+		if (user == null) return res.status(404).send({
+			error: "Utilisateur Introuvable"
+		})
+		const isPasswordCorrect = await checkPassword(user, password)
+		if (!isPasswordCorrect) return res.status(401).send({
+			error: "email et/ou mot de passe incorrect(s)"
+		})
+		const token = makeToken(email)
+		res.send({
+			token: token,
+			email: user.email
+		})
+	} catch (error) {
+		res.status(500).send({
+			error
+		})
+	}
+}
 
-function logUser (req, res){
-    const {email, password} = req.body
-    const user = getUser (email)
-    if (user == null) return res.status(404).send({error: "Utilisateur Introuvable"})
+function makeToken(email) {
+	return JWT.sign({
+		email
+	}, process.env.SECRET, {
+		expiresIn: "24h"
+	})
+}
+
+function getUser(email) {
+	return prisma.user.findUnique({
+		where: {
+			email
+		}
+	})
+}
+
+function checkPassword(user, password) {
+	return bcrypt.compare(password, user.password)
+}
+async function signupUser(req, res) {
+	const { email, password, confirmPassword } = req.body
+    try
+	{if (password !== confirmPassword) return res.status(400).send({ error: "les mots de pass ne sont pas identiques" })
+	const userInDb = await getUser(email)
+	if (userInDb != null) return res.status(400).send({ error: "email et/ou mot de passe incorrect(s)" })
+	
+    const hash = await hashedPassword(password)
+    const user = await saveUser({ email, password: hash })
+    res.send({ user })}
     
-    checkPassword(user, password)
-        .then((isPasswordCorrect) =>{
-         if (!isPasswordCorrect) return res.status(401).send({error: "Le mot de passe est incorrect"})
-         const token = makeToken(email)   
-         res.send({token: token, email: user.email})
-        })
-        .catch((error) => res.status(500).send({ error }))
-    
-    
-    const token = makeToken(email)
+    catch(error) { 
+        res.status(500).send({ error })
+    }
 }
 
-function makeToken(email){
-    return JWT.sign({email}, process.env.SECRET, { expiresIn: "24h" })
+function saveUser(user) {
+	return prisma.user.create({ data: user })
 }
 
-function getUser(email){
-    return users.find((user) => user.email === email)
+function hashedPassword(password) {
+	return bcrypt.hash(password, 10)
 }
-
-function checkPassword(user, password){
-    return bcrypt.compare(password, user.password)
+module.exports = {
+	logUser,
+	signupUser
 }
-
-function signupUser(req,res) {
-    const { email, password, confirmPassword} = req.body
-    if (password !== confirmPassword) return res.status(400).send
-    ({error: "les mots de pass ne sont pas identiques"})
-    const user = getUser (email)
-    if (user != null) return res.status(400).send({error: "L'utilisateur existe déja"})
-    hashedPassword(password)
-        .then((hash) => {
-           saveUser({email, password: hash}) 
-           res.send({ email: email})
-        })
-        .catch((error) => res.status(500).send({ error }))
-}
-
-
-function saveUser(user){
-    users.push(user)
-}
-
-
-function hashedPassword (password) {
-    return bcrypt.hash(password, 10) 
-  }
-
-
-module.exports = { logUser, signupUser }

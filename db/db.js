@@ -6,4 +6,7 @@ const user2 = { email: "sam.k@gmail.com", "password": mockHash}
 const user3 = { email: "sally.k@gmail.com", "password": mockHash}
 const users =  [user1, user2, user3]
 
-module.exports = { users }
+const { PrismaClient } = require("@prisma/client")
+const prisma = new PrismaClient()
+
+module.exports = { users, prisma }
