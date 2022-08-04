@@ -1,47 +1,33 @@
 const { prisma } = require ("../db/db")
 
-
-
-const comment1 = {
-    id: "1comment",
-    user: "nom@gmail.com",
-    content: "Mon premier commentaire"
-}
-const comment2 = {
-    id: "2comment",
-    user: "nom@gmail.com",
-    content: "Mon deuxième commentaire"
-}
-
-
-
-const post1 = {
-    id: "1",
-    user: "salome.k@gmail.com",
-    content: "Mon premier post !",
-    url: "https://picsum.photos/600/300",
-    comments: [comment1, comment2]
-}
-const post2 = {
-    id: "2",
-    user: "salome.k@gmail.com",
-    content: "Mon deuxième post !",
-    url: "https://picsum.photos/600/300",
-    comments: [comment1]
-}
-const post3 = {
-    id: "3",
-    user: "salome.k@gmail.com",
-    content: "Mon troisième post !",
-    url: "https://picsum.photos/600/300",
-    comments: []
-}
-
-const posts =  [post1, post2, post3]
-
-function getPosts(req, res){
+async function getPosts(req, res){
     const email = req.email
-    res.send({ posts, email})   
+    const posts = await prisma.post.findMany({
+        include: {
+            comments: {
+            orderBy : {
+                createdAt: "asc"
+            },
+              include: {
+                user: {
+                    select : {
+                       email: true 
+                    }
+                }
+              }  
+            },
+            user:{
+                select: {
+                    email: true
+                }
+            }
+        },
+        orderBy: {
+            createdAt: "desc"
+        }
+    })
+    res.send({ posts: posts, email })   
+
 }
 
 async function createPosts(req, res){
@@ -56,7 +42,6 @@ async function createPosts(req, res){
     addImageUrlToPost(req, post)
     
     const result = await prisma.post.create({ data: post})
-    console.log("result:", result)
     res.send({ post: result })
  } catch (err){
     res.status(500).send({ error: "Une erreur s'est produite"})
@@ -74,20 +59,29 @@ function addImageUrlToPost(req, post){
 
 }
 
-function createComment(req, res){
-    console.log("req.params:", req.params)
-    const postId = req.params.id
-    const post = posts.find((post) => post.id === postId)
-    console.log("post:", post)
+async function createComment(req, res) {
+    const postId = Number(req.params.id)
+    console.log("posts", posts)
+    const post = await prisma.post.findUnique({
+      where: { id: postId },
+      include: {
+        user: {
+          select: {
+            id: true
+          }
+        }
+      }
+    })
+     if (post == null) {
+      return res.status(404).send ({ error: "Le post n'existe pas"})
+     }
+    const userId = post.user.id
 
-    console.log("req.body:", req.body)
-    
-    const id = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
-    const user = req.email
-    const commentToSend = { id, user, content: req.body.comment}
+    const commentToSend = { userId, postId, content: req.body.comment}
     console.log("commentToSend:", commentToSend)
-    post.comments.push(commentToSend)
-    res.send({ post })
+    const comment = await prisma.comment.create({ data: commentToSend })
+    console.log("comment:", comment)
+    res.send({ comment })
 }
 
 
