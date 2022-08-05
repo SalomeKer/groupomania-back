@@ -44,6 +44,8 @@ function getUser(email) {
 function checkPassword(user, password) {
 	return bcrypt.compare(password, user.password)
 }
+
+
 async function signupUser(req, res) {
 	const { email, password, confirmPassword } = req.body
     console.log("confirmPassword:", confirmPassword)
@@ -53,7 +55,7 @@ async function signupUser(req, res) {
     return res.status(400).send({ error: "Veuillez comfirmer votre mot de passe" })
     if (password !== confirmPassword) return res.status(400).send({ error: "les mots de passe ne sont pas identiques" })
 	const userInDb = await getUser(email)
-	if (userInDb != null) return res.status(400).send({ error: "email et/ou mot de passe incorrect(s)" })
+	if (userInDb != null) return res.status(400).send({ error: "L'utilisateur existe déja" })
 	
     const hash = await hashedPassword(password)
     const user = await saveUser({ email, password: hash })
