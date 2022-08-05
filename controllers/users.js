@@ -1,11 +1,9 @@
 const JWT = require("jsonwebtoken")
 const { prisma } = require("../db/db.js")
 const bcrypt = require("bcrypt")
+
 async function logUser(req, res) {
-	const {
-		email,
-		password
-	} = req.body
+	const { email, password } = req.body
 	try {
 		const user = await getUser(email)
 		if (user == null) return res.status(404).send({
@@ -48,8 +46,12 @@ function checkPassword(user, password) {
 }
 async function signupUser(req, res) {
 	const { email, password, confirmPassword } = req.body
-    try
-	{if (password !== confirmPassword) return res.status(400).send({ error: "les mots de pass ne sont pas identiques" })
+    console.log("confirmPassword:", confirmPassword)
+    console.log("req.body:", req.body)
+    try {
+    if (confirmPassword == null)
+    return res.status(400).send({ error: "Veuillez comfirmer votre mot de passe" })
+    if (password !== confirmPassword) return res.status(400).send({ error: "les mots de passe ne sont pas identiques" })
 	const userInDb = await getUser(email)
 	if (userInDb != null) return res.status(400).send({ error: "email et/ou mot de passe incorrect(s)" })
 	
