@@ -27,6 +27,15 @@ model Post {
     createdAt DateTime @default(now())
 }
 
+model Likes {
+    id Int @id @default(autoincrement())
+    userId Int 
+    postId Int 
+    email String  
+
+@@unique(fields:[email, postId], name:"UniqueLike")
+}
+
 model Comment {
     id Int @id @default(autoincrement())
     content String

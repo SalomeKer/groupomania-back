@@ -2,6 +2,7 @@ const { prisma } = require ("../db/db")
 
 async function getPosts(req, res){
     const email = req.email
+    const userLogged = await prisma.user.findUnique({ where: { email } });
     const posts = await prisma.post.findMany({
         include: {
             comments: {
@@ -26,7 +27,7 @@ async function getPosts(req, res){
             createdAt: "desc"
         }
     })
-    res.send({ posts: posts, email })   
+    res.send({ posts: posts, email, userLogged })   
 
 }
 
@@ -46,48 +47,6 @@ async function createPosts(req, res){
  } catch (err){
     res.status(500).send({ error: "Une erreur s'est produite"})
  }
-}
-
-function addImageUrlToPost(req, post){    
-    const hasImage = req.file != null
-    if (!hasImage) return
-    let pathToImage = req.file.path.replace("\\", "/")
-    const protocol = req.protocol
-    const host = req.get("host")
-    const url = `${protocol}://${host}/${pathToImage}`    
-    post.imageUrl = url
-
-}
-
-async function deletePost(req, res) {
-  const postId = Number(req.params.id)
-  try {
-    const post = await prisma.post.findUnique({
-      where: {
-        id: postId
-      },
-      include: {
-        user: {
-          select: {
-            email: true
-          }
-        }
-      }
-    })
-    console.log("post:", post)
-    if (post == null) {
-      return res.status(404).send({ error: "Post not found" })
-    }
-    const email = req.email
-    if (email !== post.user.email) {
-      return res.status(403).send({ error: "You are not the owner of this post" })
-    }
-    await prisma.comment.deleteMany({ where: { postId } })
-    await prisma.post.delete({ where: { id: postId } })
-    res.send({ message: "Post deleted" })
-  } catch (err) {
-    res.status(500).send({ error: "Something went wrong" })
-  }
 }
 
 
@@ -118,6 +77,99 @@ async function createComment(req, res) {
     console.log("comment:", comment)
     res.send({ comment })
 }
+    
 
 
-module.exports = { getPosts, createPosts, createComment, deletePost }
+function findUniquePost(postId) {
+      return prisma.post.findUnique({
+        where: { id: postId },
+        include: {
+          user: {
+            select: {
+              id: true,
+            },
+          },
+        },
+      });
+    }
+
+    async function deletePost(req, res) {
+      const postId = Number(req.params.id)
+      try {
+        const post = await findUniquePostUser(postId);
+        if (post == null) {
+          return res.status(404).send({ error: "Post introuvable" });
+        }
+        const email = req.email;
+        // Récupéré dans le token
+        /* Vérification de l'identité de la personne qui supprime le post */
+    
+        await prisma.comment.deleteMany({ where: { postId } });
+        await prisma.post.delete({ where: { id: postId } });
+        res.send({ message: "Post supprimé" });
+      } catch (error) {
+        res.status(500).send({ error: "Erreur :", error });
+      }
+    }
+
+    async function modifyPost(req, res) {
+      /* Id du post modifié */
+      const postId = Number(req.params.id);
+      newContent = req.body.content;
+    
+      try {
+        if (req.file != null) {
+          const newImageUrl = `${req.protocol}://${req.get("host")}/${req.file.filename}`;
+          const postModified = await prisma.post.update({
+            where: {
+              id: postId,
+            },
+            data: {
+              content: newContent,
+              imageUrl: newImageUrl,
+            },
+          });
+          res.send(postModified);
+        } else {
+          postModified = await prisma.post.update({
+            where: {
+              id: postId,
+            },
+            data: {
+              content: newContent,
+            },
+          });
+          res.send(postModified);
+        }
+      } catch (error) {
+        res.status(500).send({ error: "Erreur de modification du post :", error });
+      }
+    }
+
+    function addImageUrlToPost(req, post){    
+      const hasImage = req.file != null
+      if (!hasImage) return
+      let pathToImage = req.file.path.replace("\\", "/")
+      const protocol = req.protocol
+      const host = req.get("host")
+      const url = `${protocol}://${host}/${pathToImage}`    
+      post.imageUrl = url
+  
+  }
+
+    function findUniquePostUser(postId) {
+      return prisma.post.findUnique({
+        where: { id: postId },
+        include: {
+          user: {
+            select: {
+              email: true,
+            },
+          },
+        },
+      });
+    }
+
+
+
+module.exports = { getPosts, createPosts, createComment, deletePost, modifyPost}
