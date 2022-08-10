@@ -55,9 +55,6 @@ async function signupUser(req, res) {
         });
     }
     try {
-    if (confirmPassword == null)
-    return res.status(400).send({ error: "Veuillez comfirmer votre mot de passe" })
-    if (password !== confirmPassword) return res.status(400).send({ error: "les mots de passe ne sont pas identiques" })
 	const userInDb = await getUser(email)
 	if (userInDb != null) return res.status(400).send({ error: "L'utilisateur existe déja" })
 	
