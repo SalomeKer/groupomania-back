@@ -1,6 +1,7 @@
 const JWT = require("jsonwebtoken")
 const { prisma } = require("../db/db.js")
 const bcrypt = require("bcrypt")
+const emailRegex = /^[a-zA-Z-_\.]+@[a-zA-Z\.]+[\.]+[a-z]*$/
 
 async function logUser(req, res) {
 	const { email, password } = req.body
@@ -48,8 +49,11 @@ function checkPassword(user, password) {
 
 async function signupUser(req, res) {
 	const { email, password, confirmPassword } = req.body
-    console.log("confirmPassword:", confirmPassword)
-    console.log("req.body:", req.body)
+	if (!emailRegex.test(email)) {
+        return res.status(400).json({
+            error: "le format de l'email est incorrect"
+        });
+    }
     try {
     if (confirmPassword == null)
     return res.status(400).send({ error: "Veuillez comfirmer votre mot de passe" })
